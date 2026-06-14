@@ -132,7 +132,6 @@ Completed:
 Remaining:
 
 - Capture APIM observability checks.
-- Rotate any APIM subscription key that was exposed during local testing.
 - Document the target Entra ID/OAuth architecture.
 
 ## Trade-Offs
@@ -157,7 +156,8 @@ Target architecture should evaluate Standard v2, Premium, private networking, an
 
 ## Related Documents
 
-- [Documentation entry point](README.md)
+- [Main project README](../README.md)
+- [Supporting documentation index](README.md)
 - [ADR-001](decisions/001-mcp-registry-gateway-poc.md)
 - [MCP POC test plan](runbooks/mcp-poc-test-plan.md)
 - [VS Code / GitHub Copilot MCP test](runbooks/vscode-copilot-mcp-test.md)

@@ -4,7 +4,8 @@ Start here for the Obsidian vault.
 
 ## Navigation
 
-- [[README|Documentation Overview]]
+- [[../README|Main Project README]]
+- [[README|Supporting Documentation]]
 - [[architecture|Architecture]]
 - [[diagram-tooling|Diagram Tooling]]
 - [[diagram-variants/README|Diagram Variants]]
@@ -19,8 +20,6 @@ Start here for the Obsidian vault.
 
 Validate and harden the POC:
 
-1. Confirm VS Code/GitHub Copilot can use Microsoft Learn MCP through APIM.
-2. Capture APIM observability checks.
-3. Rotate any APIM subscription key exposed during local testing.
-4. Review diagram variants.
-5. Design the target OAuth/Entra ID architecture.
+1. Capture APIM observability checks.
+2. Review diagram variants.
+3. Design the target OAuth/Entra ID architecture.

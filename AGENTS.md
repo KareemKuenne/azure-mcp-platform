@@ -20,10 +20,12 @@ Do not mix personal laptop enablement into the main architecture narrative. Pers
 ## Documentation Style
 
 - Write project documentation in English.
-- Use the root `README.md` as the main narrative entry point.
+- Treat documentation as a human-facing interface for understanding, not as a raw information dump.
+- Use the root `README.md` as the main narrative entry point and keep it useful as a standalone project guide.
 - Keep `README.md` readable from top to bottom with a table of contents.
 - Embed the most important diagrams directly in `README.md`.
-- Use `docs/` for supporting material: runbooks, ADRs, deeper architecture notes, and diagram research.
+- Use `docs/` for supporting material: runbooks, ADRs, appendices, and diagram sources or variants.
+- Prefer tables for comparisons, resource inventories, configuration matrices, cost summaries, and decision summaries.
 - Prefer concise, practical explanations over abstract enterprise language.
 - Explain why a decision was made, not only what was changed.
 
