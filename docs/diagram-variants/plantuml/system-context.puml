@@ -1,0 +1,26 @@
+@startuml
+!theme plain
+title Azure MCP Platform - System Context
+
+actor Developer
+
+rectangle "VS Code\nGitHub Copilot" as VSCode
+database "GitHub Repository\nazure-mcp-platform" as Repo
+
+cloud "Azure POC Environment" {
+  rectangle "Azure API Center\nMCP Registry" as APIC
+  rectangle "Azure API Management\nMCP Gateway" as APIM
+}
+
+rectangle "Microsoft Learn MCP\nUpstream Server" as Learn
+
+Developer --> VSCode : opens workspace
+Developer --> Repo : commits changes
+Repo --> APIC : Terraform metadata
+Repo --> APIM : Terraform gateway config
+Repo --> VSCode : .vscode/mcp.json
+VSCode --> APIM : MCP over HTTP\nOcp-Apim-Subscription-Key
+APIM --> Learn : policy + rate limit\nforward valid traffic
+APIC ..> APIM : catalog metadata\nruntime URL
+
+@enduml

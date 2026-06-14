@@ -1,0 +1,28 @@
+.DS_Store
+
+# Local environment
+.env
+.env.*
+!.env.example
+.github/azure-federated-credential.json
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfplan
+
+# Editor and Obsidian local state
+.idea/
+.vscode/*
+!.vscode/mcp.json
+docs/.obsidian/workspace.json
+docs/.obsidian/workspace-mobile.json

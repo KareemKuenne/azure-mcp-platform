@@ -1,0 +1,51 @@
+specification {
+  element person
+  element system
+  element container
+
+  relationship uses
+  relationship deploys
+  relationship documents
+}
+
+model {
+  developer = person 'Developer'
+
+  vscode = system 'VS Code / GitHub Copilot' {
+    description 'MCP host used for the POC'
+  }
+
+  repo = system 'azure-mcp-platform repository' {
+    description 'Source control for Terraform, docs, and MCP workspace configuration'
+  }
+
+  azure = system 'Azure POC Environment' {
+    apic = container 'Azure API Center' {
+      description 'MCP registry and governance catalog'
+    }
+
+    apim = container 'Azure API Management' {
+      description 'MCP gateway with policy and rate limiting'
+    }
+  }
+
+  learn = system 'Microsoft Learn MCP Server' {
+    description 'Upstream MCP server exposing Microsoft Learn tools'
+  }
+
+  developer -> vscode 'opens workspace'
+  developer -> repo 'commits changes'
+  repo -> azure.apic 'deploys registry metadata'
+  repo -> azure.apim 'deploys gateway config'
+  repo -> vscode 'provides .vscode/mcp.json'
+  vscode -> azure.apim 'uses MCP over HTTP with subscription key header'
+  azure.apim -> learn 'forwards valid MCP traffic'
+  azure.apic -> azure.apim 'documents runtime URL and governance metadata'
+}
+
+views {
+  view index of azure {
+    include *
+    autolayout lr
+  }
+}

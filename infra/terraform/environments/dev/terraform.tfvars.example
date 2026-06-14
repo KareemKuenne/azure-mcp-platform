@@ -1,0 +1,11 @@
+subscription_id                = "<azure-subscription-id>"
+tenant_id                      = "<entra-tenant-id>"
+state_storage_account_name     = "<globally-unique-storage-account-name>"
+api_center_name                = "apic-example-dev"
+api_management_name            = "<globally-unique-apim-name>"
+api_management_publisher_email = "platform-team@example.com"
+
+tags = {
+  project     = "azure-mcp-platform"
+  environment = "dev"
+}

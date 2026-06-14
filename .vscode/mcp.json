@@ -1,0 +1,24 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "apim-mcp-endpoint-v1",
+      "description": "APIM MCP endpoint URL, for example https://<apim-name>.azure-api.net/microsoft-learn-mcp/mcp"
+    },
+    {
+      "type": "promptString",
+      "id": "apim-subscription-key-remote-http-v1",
+      "description": "Azure MCP Platform APIM subscription key (32 characters)",
+      "password": true
+    }
+  ],
+  "servers": {
+    "microsoftLearnMcpViaApim": {
+      "type": "http",
+      "url": "${input:apim-mcp-endpoint-v1}",
+      "headers": {
+        "Ocp-Apim-Subscription-Key": "${input:apim-subscription-key-remote-http-v1}"
+      }
+    }
+  }
+}

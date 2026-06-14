@@ -1,0 +1,17 @@
+flowchart LR
+  developer[Developer]
+  vscode[VS Code<br/>GitHub Copilot]
+  repo[GitHub Repository<br/>azure-mcp-platform]
+  apic[Azure API Center<br/>MCP Registry]
+  apim[Azure API Management<br/>MCP Gateway]
+  learn[Microsoft Learn MCP<br/>Upstream Server]
+
+  developer -->|opens workspace| vscode
+  developer -->|commits changes| repo
+  repo -->|Terraform| apic
+  repo -->|Terraform| apim
+  repo -->|.vscode/mcp.json| vscode
+
+  vscode -->|MCP over HTTP<br/>subscription key header| apim
+  apim -->|policy + rate limit| learn
+  apic -.->|catalog metadata<br/>owner, risk, auth, runtime URL| apim

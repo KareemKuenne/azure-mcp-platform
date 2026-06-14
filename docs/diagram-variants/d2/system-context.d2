@@ -1,0 +1,64 @@
+direction: right
+
+classes: {
+  person: {
+    shape: person
+    style.fill: "#EEF6FF"
+    style.stroke: "#2563EB"
+  }
+  repo: {
+    shape: cylinder
+    style.fill: "#F8FAFC"
+    style.stroke: "#475569"
+  }
+  registry: {
+    style.fill: "#ECFDF5"
+    style.stroke: "#059669"
+  }
+  gateway: {
+    style.fill: "#FFF7ED"
+    style.stroke: "#EA580C"
+  }
+  upstream: {
+    style.fill: "#F5F3FF"
+    style.stroke: "#7C3AED"
+  }
+}
+
+developer: Developer {
+  class: person
+}
+
+vscode: "VS Code\nGitHub Copilot" {
+  style.fill: "#EFF6FF"
+  style.stroke: "#1D4ED8"
+}
+
+repo: "GitHub Repository\nazure-mcp-platform" {
+  class: repo
+}
+
+azure: "Azure POC Environment" {
+  apic: "Azure API Center\nMCP Registry" {
+    class: registry
+  }
+
+  apim: "Azure API Management\nMCP Gateway" {
+    class: gateway
+  }
+}
+
+learn: "Microsoft Learn MCP\nUpstream Server" {
+  class: upstream
+}
+
+developer -> vscode: opens workspace
+developer -> repo: commits changes
+repo -> azure.apic: Terraform metadata
+repo -> azure.apim: Terraform gateway config
+repo -> vscode: .vscode/mcp.json
+vscode -> azure.apim: "MCP over HTTP\nOcp-Apim-Subscription-Key"
+azure.apim -> learn: "policy + rate limit\nforward valid traffic"
+azure.apic -> azure.apim: "catalog metadata\nruntime URL" {
+  style.stroke-dash: 4
+}

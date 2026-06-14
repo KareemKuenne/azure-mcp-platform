@@ -1,0 +1,69 @@
+name: terraform-validate
+
+on:
+  pull_request:
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/terraform-validate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/terraform-validate.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  terraform-plan:
+    name: Terraform plan
+    runs-on: ubuntu-latest
+    env:
+      ARM_USE_AZUREAD: true
+      TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_tenant_id: ${{ vars.AZURE_TENANT_ID }}
+      TF_VAR_location: westeurope
+    defaults:
+      run:
+        working-directory: infra/terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP_NAME }}" \
+            -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT_NAME }}" \
+            -backend-config="container_name=${{ vars.TF_STATE_CONTAINER_NAME }}" \
+            -backend-config="key=${{ vars.TF_STATE_KEY }}" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan
+        run: terraform plan -input=false -out=tfplan
+        env:
+          TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_tenant_id: ${{ vars.AZURE_TENANT_ID }}
+          TF_VAR_state_storage_account_name: ${{ vars.TF_STATE_STORAGE_ACCOUNT_NAME }}
+          TF_VAR_api_center_name: ${{ vars.API_CENTER_NAME }}
+          TF_VAR_api_management_name: ${{ vars.API_MANAGEMENT_NAME }}
+          TF_VAR_api_management_publisher_email: ${{ vars.API_MANAGEMENT_PUBLISHER_EMAIL }}
