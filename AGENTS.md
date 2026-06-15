@@ -22,10 +22,12 @@ Do not mix personal laptop enablement into the main architecture narrative. Pers
 - Write project documentation in English.
 - Treat documentation as a human-facing interface for understanding, not as a raw information dump.
 - Use the root `README.md` as the main narrative entry point and keep it useful as a standalone project guide.
-- Keep `README.md` readable from top to bottom with a table of contents.
+- Keep `README.md` readable from top to bottom with a hierarchical table of contents.
 - Embed the most important diagrams directly in `README.md`.
 - Use `docs/` for supporting material: runbooks, ADRs, appendices, and diagram sources or variants.
+- Introduce tables with a clear purpose and avoid mixing unrelated categories in one table.
 - Prefer tables for comparisons, resource inventories, configuration matrices, cost summaries, and decision summaries.
+- Cover repository purpose, goal, scope, out of scope, components, architecture, authentication, resources, deployment, testing, observability, security, cost, decisions, limitations, and references.
 - Prefer concise, practical explanations over abstract enterprise language.
 - Explain why a decision was made, not only what was changed.
 

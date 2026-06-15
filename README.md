@@ -2,52 +2,97 @@
 
 Azure MCP Platform is a proof of concept for governing Model Context Protocol (MCP) servers with Azure-native services.
 
-The project demonstrates how an organization can register approved MCP servers, route MCP traffic through a governed gateway, and let VS Code with GitHub Copilot consume an approved MCP server without building a custom MCP server first.
+It shows how an organization can register approved MCP servers, expose them through a governed gateway, and let VS Code with GitHub Copilot consume an approved MCP server through that gateway.
 
 ## Table Of Contents
 
-- [Purpose](#purpose)
-- [Status](#status)
-- [What This POC Proves](#what-this-poc-proves)
-- [Architecture At A Glance](#architecture-at-a-glance)
-- [System Context](#system-context)
-- [Azure Resource Architecture](#azure-resource-architecture)
-- [Runtime Flow](#runtime-flow)
-- [Delivery And Operations](#delivery-and-operations)
-- [Repository Structure](#repository-structure)
+- [About This Repository](#about-this-repository)
+  - [Goal](#goal)
+  - [Scope](#scope)
+  - [Out Of Scope](#out-of-scope)
+- [Current Status](#current-status)
+- [Conceptual Overview](#conceptual-overview)
+  - [What This POC Proves](#what-this-poc-proves)
+  - [MCP Platform Components](#mcp-platform-components)
+  - [Supporting Delivery Components](#supporting-delivery-components)
+- [Architecture](#architecture)
+  - [Architecture Summary](#architecture-summary)
+  - [System Context](#system-context)
+  - [Azure Resource Architecture](#azure-resource-architecture)
+  - [Runtime Flow](#runtime-flow)
+  - [Delivery And Operations](#delivery-and-operations)
+- [Authentication And Authorization](#authentication-and-authorization)
+  - [POC Authentication Flow](#poc-authentication-flow)
+  - [Why APIM Policy Checks The Key](#why-apim-policy-checks-the-key)
+  - [Target Enterprise Authentication](#target-enterprise-authentication)
 - [Azure Resources](#azure-resources)
+  - [Resource Inventory](#resource-inventory)
+  - [Important Endpoints](#important-endpoints)
+- [Repository Structure](#repository-structure)
 - [Configuration](#configuration)
+  - [Terraform Variables](#terraform-variables)
+  - [GitHub Actions Variables](#github-actions-variables)
+  - [VS Code MCP Configuration](#vs-code-mcp-configuration)
+- [Implementation Walkthrough](#implementation-walkthrough)
 - [Deploy](#deploy)
 - [Test](#test)
+  - [Direct Gateway Smoke Test](#direct-gateway-smoke-test)
+  - [VS Code / GitHub Copilot End-To-End Test](#vs-code--github-copilot-end-to-end-test)
+- [Observability And Monitoring](#observability-and-monitoring)
 - [Security And Governance](#security-and-governance)
+  - [POC Controls](#poc-controls)
+  - [Registry Metadata](#registry-metadata)
 - [Cost Model](#cost-model)
 - [Architecture Decisions](#architecture-decisions)
 - [Known Limitations](#known-limitations)
 - [Related Repositories](#related-repositories)
 - [References](#references)
 
-## Purpose
+## About This Repository
 
-MCP allows AI hosts such as VS Code and GitHub Copilot to call external tools. That is powerful, but it creates an enterprise governance question:
+This repository contains a public, reusable Azure proof of concept for an MCP registry and gateway architecture.
 
-> How can approved MCP servers be discovered, governed, secured, and operated centrally?
+The documentation is written for readers who understand general cloud and developer platform concepts, but do not yet know this project. It should help a future maintainer, a new colleague, or an external reader understand what was built, why it was built, how it works, and how to reproduce it.
 
-This repository proves a minimal Azure-based answer.
+### Goal
 
-| Capability | POC Implementation | Why It Matters |
-| --- | --- | --- |
-| MCP host | VS Code with GitHub Copilot Agent mode | Represents the developer experience that should consume governed tools |
-| MCP server | Microsoft Learn MCP | Provides useful read-only tools without custom server development |
-| Registry | Azure API Center | Stores approved MCP server metadata, ownership, risk, auth, and runtime deployment information |
-| Gateway | Azure API Management | Enforces access policy, rate limits, and routing before traffic reaches the upstream MCP server |
-| Infrastructure | Terraform | Keeps the Azure platform reproducible |
-| Delivery | GitHub Actions plan-only workflow | Validates infrastructure changes without automated apply |
+The goal is to prove a minimal enterprise-oriented pattern for centrally governing MCP server usage:
 
-The POC focuses on **registry, gateway, policy enforcement, and host integration**. Custom MCP server development is intentionally out of scope for the first iteration.
+1. Register an approved MCP server in a central registry.
+2. Route MCP traffic through a gateway.
+3. Enforce basic policy at the gateway.
+4. Validate that VS Code with GitHub Copilot can use the approved MCP server through that gateway.
 
-## Status
+### Scope
+
+This POC includes:
+
+- Azure API Center as the MCP registry.
+- Azure API Management as the MCP gateway.
+- Microsoft Learn MCP as the first upstream MCP server.
+- VS Code with GitHub Copilot as the MCP host.
+- Terraform-managed Azure infrastructure.
+- GitHub Actions validation and Terraform planning.
+- Public-ready documentation and architecture records.
+
+### Out Of Scope
+
+This POC does not include:
+
+- Custom MCP server development.
+- Production-grade private networking.
+- Production SLA design.
+- Multi-region deployment.
+- Full Entra ID/OAuth implementation for MCP clients.
+- Automated `terraform apply` from GitHub Actions.
+
+These items are intentionally deferred until the registry and gateway pattern is proven.
+
+## Current Status
 
 The technical POC is working.
+
+The table below summarizes the current implementation status and the evidence behind each item.
 
 | Area | Status | Evidence |
 | --- | --- | --- |
@@ -57,8 +102,8 @@ The technical POC is working.
 | Policy enforcement | Complete | APIM validates `Ocp-Apim-Subscription-Key` through policy and applies rate limiting |
 | Direct gateway test | Complete | APIM returned `200`, `text/event-stream`, and `mcp-session-id` for MCP `initialize` |
 | VS Code / Copilot test | Complete | VS Code discovered the Microsoft Learn MCP tools through APIM |
-| Target enterprise auth | Planned | Entra ID/OAuth remains the target architecture, not the POC shortcut |
-| Observability | Planned | APIM log validation should be added next |
+| Observability validation | Planned | APIM log validation should be added next |
+| Target enterprise auth | Planned | Entra ID/OAuth remains the target architecture |
 
 Validated Microsoft Learn MCP tools:
 
@@ -68,24 +113,63 @@ Validated Microsoft Learn MCP tools:
 | `microsoft_code_sample_search` | Search official code samples |
 | `microsoft_docs_fetch` | Fetch Microsoft Learn documentation content |
 
-## What This POC Proves
+## Conceptual Overview
 
-This POC demonstrates an end-to-end governed MCP path:
+MCP allows AI hosts such as VS Code and GitHub Copilot to call external tools. That is useful, but in an enterprise context it creates a governance problem:
+
+> How can approved MCP servers be discovered, governed, secured, and operated centrally?
+
+This POC separates that problem into two concerns:
+
+- **Registry:** Which MCP servers are approved, who owns them, what risk do they have, and where are they deployed?
+- **Gateway:** How does runtime MCP traffic get routed, controlled, and protected before it reaches the upstream server?
+
+### What This POC Proves
+
+The POC demonstrates this end-to-end path:
 
 1. A developer opens this repository in VS Code.
-2. VS Code starts the configured remote HTTP MCP server.
-3. VS Code sends MCP traffic to Azure API Management.
-4. API Management validates the subscription key through an inbound policy.
-5. API Management applies rate limiting.
-6. API Management forwards valid traffic to Microsoft Learn MCP.
-7. GitHub Copilot can discover and use the Microsoft Learn MCP tools.
-8. Azure API Center stores registry and governance metadata for the approved MCP server.
+2. VS Code reads the workspace MCP configuration from `.vscode/mcp.json`.
+3. VS Code starts the configured Remote HTTP MCP server.
+4. VS Code sends MCP traffic to Azure API Management.
+5. API Management validates the subscription key through an inbound policy.
+6. API Management applies rate limiting.
+7. API Management forwards valid traffic to Microsoft Learn MCP.
+8. GitHub Copilot discovers and can use the Microsoft Learn MCP tools.
+9. Azure API Center stores registry and governance metadata for the approved MCP server.
 
-The important result is not just that MCP traffic works. The important result is that the traffic passes through an Azure governance point before it reaches the upstream server.
+The important result is not only that MCP traffic works. The important result is that the traffic passes through an Azure governance point before it reaches the upstream server.
 
-## Architecture At A Glance
+### MCP Platform Components
 
-The architecture has two planes:
+This table only describes the logical MCP platform components. It intentionally does not include Terraform, CI/CD, or repository tooling.
+
+| Component | Implementation | Responsibility |
+| --- | --- | --- |
+| MCP host | VS Code with GitHub Copilot Agent mode | Starts the MCP connection and makes tools available to the developer |
+| MCP server | Microsoft Learn MCP | Provides read-only documentation and code sample tools |
+| MCP registry | Azure API Center | Records approved MCP server metadata, ownership, risk, auth model, and deployment URL |
+| MCP gateway | Azure API Management | Receives MCP traffic, validates access, applies policy, and forwards valid requests upstream |
+
+### Supporting Delivery Components
+
+This table describes the supporting engineering components that make the POC reproducible and maintainable.
+
+| Component | Implementation | Responsibility |
+| --- | --- | --- |
+| Infrastructure as code | Terraform | Defines Azure resources reproducibly |
+| Terraform state | Azure Storage | Stores shared remote state outside the local machine |
+| CI validation | GitHub Actions | Runs Terraform validation and plan checks |
+| Agent instructions | `AGENTS.md` | Captures project working conventions for Codex and other agents |
+| Project documentation | `README.md` plus supporting `docs/` artifacts | Makes the architecture understandable and reusable |
+
+## Architecture
+
+### Architecture Summary
+
+The POC has two architecture planes.
+
+The table below explains the role of each plane before the diagrams go into detail.
 
 | Plane | Purpose | Azure Service |
 | --- | --- | --- |
@@ -94,9 +178,9 @@ The architecture has two planes:
 
 The first upstream MCP server is Microsoft Learn MCP at `https://learn.microsoft.com/api/mcp`.
 
-## System Context
+### System Context
 
-This diagram shows the actors and systems involved in the POC.
+This diagram shows who interacts with the POC and which external systems are involved.
 
 ```mermaid
 flowchart LR
@@ -121,9 +205,9 @@ flowchart LR
 
 Alternative rendered diagram variants are available in [docs/diagram-variants](docs/diagram-variants/README.md).
 
-## Azure Resource Architecture
+### Azure Resource Architecture
 
-This diagram shows the deployed Azure resources and how they relate to each other.
+This diagram shows the Azure resources deployed for the POC and how they relate to each other.
 
 ```mermaid
 flowchart TB
@@ -160,9 +244,9 @@ flowchart TB
 
 Key implementation detail: the APIM MCP API is managed with `azapi_resource` because the AzureRM provider does not expose every required MCP API shape as a first-class resource yet.
 
-## Runtime Flow
+### Runtime Flow
 
-This sequence shows the end-to-end MCP startup and tool discovery path.
+This sequence shows what happens when VS Code starts the MCP server and discovers tools through APIM.
 
 ```mermaid
 sequenceDiagram
@@ -191,11 +275,11 @@ sequenceDiagram
   VSCode-->>Developer: Discovered 3 tools
 ```
 
-Important: APIM native `subscriptionRequired` is disabled for this API. The POC still uses an APIM subscription key, but the key is checked by an inbound policy against a secret APIM named value. This avoids a built-in APIM authentication challenge that caused VS Code Remote HTTP MCP to attempt OAuth/Dynamic Client Registration.
+The APIM subscription key is entered locally in VS Code and is not committed to Git.
 
-## Delivery And Operations
+### Delivery And Operations
 
-This diagram shows how local work, GitHub, Terraform, and Azure fit together.
+This diagram shows how local development, GitHub, Terraform, and Azure operations fit together.
 
 ```mermaid
 flowchart LR
@@ -220,6 +304,75 @@ flowchart LR
 
 For this POC, GitHub Actions validates and plans Terraform only. `terraform apply` remains manual.
 
+## Authentication And Authorization
+
+### POC Authentication Flow
+
+The current POC uses an APIM subscription key because it is simple enough to validate the gateway pattern quickly.
+
+The table below describes each authentication-related step in the current flow.
+
+| Step | Actor | What Happens |
+| --- | --- | --- |
+| 1 | VS Code | Prompts the local user for the APIM subscription key |
+| 2 | VS Code | Sends the key in the `Ocp-Apim-Subscription-Key` header |
+| 3 | APIM inbound policy | Reads the header and compares it with a secret APIM named value |
+| 4 | APIM inbound policy | Rejects missing or invalid keys with `401` |
+| 5 | APIM inbound policy | Allows valid requests and applies rate limiting |
+| 6 | APIM | Forwards valid MCP traffic to Microsoft Learn MCP |
+
+### Why APIM Policy Checks The Key
+
+APIM has built-in subscription-key support. During the POC, VS Code Remote HTTP MCP interpreted the built-in APIM authentication challenge as an OAuth/Dynamic Client Registration path.
+
+To keep the POC simple, APIM native `subscriptionRequired` is disabled for this MCP API and the same key is checked by policy instead. This keeps the architecture on direct Remote HTTP MCP while still proving gateway policy enforcement.
+
+This is a POC choice, not the long-term enterprise authentication model.
+
+### Target Enterprise Authentication
+
+The target enterprise direction is Entra ID/OAuth with an MCP-compliant authorization pattern.
+
+| Area | POC | Target Direction |
+| --- | --- | --- |
+| Authentication | APIM subscription key checked by policy | Entra ID/OAuth with MCP-compliant authorization |
+| Network exposure | Public APIM endpoint for local testing | Private networking, VPN, Dev Box, or controlled developer environment |
+| Gateway tier | APIM Developer tier | Production-grade tier based on SLA, scale, private networking, and observability needs |
+| Server scope | One read-only MCP server | Multiple approved MCP servers with registry-driven discovery |
+
+## Azure Resources
+
+### Resource Inventory
+
+This table lists the Azure resources and logical objects used by the POC. It answers: "What exists in Azure, and what role does it play?"
+
+| Resource Or Object | Example Pattern | Role In The POC |
+| --- | --- | --- |
+| Resource group | `rg-<project>-<env>` | Groups all Azure resources for the development environment |
+| Storage account | `<unique-storage-account-name>` | Stores Terraform remote state |
+| Blob container | `tfstate` | Holds the Terraform state blob |
+| API Center | `apic-<project>-<env>` | Acts as the MCP registry |
+| API Center API | `microsoft-learn-mcp` | Represents the approved Microsoft Learn MCP server |
+| API Center environment | `apim-dev` | Represents the APIM development gateway environment |
+| API Center deployment | `apim-dev` | Points registry metadata to the APIM runtime URL |
+| API Management | `apim-<project>-<env>` | Acts as the MCP gateway |
+| APIM API | `microsoft-learn-mcp` | Exposes the MCP endpoint through APIM |
+| APIM product | `mcp-poc` | Groups gateway access for the POC |
+| APIM subscription | `mcp-poc` subscription | Provides the subscription key used by VS Code |
+| APIM named value | `mcp-poc-gateway-key` | Stores the expected key as a secret for policy comparison |
+| APIM API policy | Inbound policy | Validates the key and applies rate limiting |
+
+### Important Endpoints
+
+This table lists the URLs a reader needs when testing or reasoning about the runtime path.
+
+| Purpose | Endpoint |
+| --- | --- |
+| APIM gateway base URL | `https://<apim-name>.azure-api.net` |
+| Microsoft Learn MCP through APIM | `https://<apim-name>.azure-api.net/microsoft-learn-mcp/mcp` |
+| Upstream Microsoft Learn MCP | `https://learn.microsoft.com/api/mcp` |
+| API Center MCP registry | `https://<api-center-name>.data.<region>.azure-apicenter.ms/workspaces/default/v0.1/servers` |
+
 ## Repository Structure
 
 ```text
@@ -242,6 +395,8 @@ For this POC, GitHub Actions validates and plans Terraform only. `terraform appl
 └── infra/terraform/
 ```
 
+The table below explains the repository folders and files that matter most to a new reader.
+
 | Path | Purpose |
 | --- | --- |
 | [README.md](README.md) | Main project documentation and first entry point |
@@ -254,33 +409,6 @@ For this POC, GitHub Actions validates and plans Terraform only. `terraform appl
 | [docs/references.md](docs/references.md) | Consolidated source references |
 
 The root README is the primary documentation surface. Files under `docs/` are supporting artifacts, runbooks, or appendices.
-
-## Azure Resources
-
-The POC uses generic resource naming so it can be adapted to another Azure subscription.
-
-| Purpose | Example Pattern |
-| --- | --- |
-| Resource group | `rg-<project>-<env>` |
-| Location | `westeurope` |
-| Terraform state storage account | `<unique-storage-account-name>` |
-| Terraform state container | `tfstate` |
-| API Center registry | `apic-<project>-<env>` |
-| API Management gateway | `apim-<project>-<env>` |
-| APIM API | `microsoft-learn-mcp` |
-| APIM product | `mcp-poc` |
-| API Center API | `microsoft-learn-mcp` |
-| API Center environment | `apim-dev` |
-| API Center deployment | `apim-dev` |
-
-Important endpoints:
-
-| Purpose | Endpoint |
-| --- | --- |
-| APIM gateway | `https://<apim-name>.azure-api.net` |
-| Microsoft Learn MCP through APIM | `https://<apim-name>.azure-api.net/microsoft-learn-mcp/mcp` |
-| Upstream Microsoft Learn MCP | `https://learn.microsoft.com/api/mcp` |
-| API Center MCP registry | `https://<api-center-name>.data.<region>.azure-apicenter.ms/workspaces/default/v0.1/servers` |
 
 ## Configuration
 
@@ -299,7 +427,7 @@ Local `*.tfvars` files are ignored by Git. Keep them local because they can cont
 
 ### GitHub Actions Variables
 
-The Terraform validation workflow expects these repository variables:
+The Terraform validation workflow expects these repository variables.
 
 | Variable | Purpose |
 | --- | --- |
@@ -318,7 +446,7 @@ The Terraform validation workflow expects these repository variables:
 
 The workspace MCP configuration lives in [.vscode/mcp.json](.vscode/mcp.json).
 
-It defines one Remote HTTP MCP server:
+It defines one Remote HTTP MCP server.
 
 | Setting | Value |
 | --- | --- |
@@ -327,6 +455,24 @@ It defines one Remote HTTP MCP server:
 | URL | `https://<apim-name>.azure-api.net/microsoft-learn-mcp/mcp` |
 | Header | `Ocp-Apim-Subscription-Key` |
 | Secret handling | VS Code prompts locally; the key is not committed |
+
+## Implementation Walkthrough
+
+This section explains the logical setup sequence. It is not a click-by-click deployment runbook; it is meant to help a reader understand how the pieces were assembled.
+
+| Step | What Was Set Up | Why It Matters |
+| --- | --- | --- |
+| 1 | GitHub repository | Provides versioned source control for Terraform, docs, decisions, and runbooks |
+| 2 | Azure foundation | Provides the subscription, resource group, and remote state foundation for repeatable infrastructure |
+| 3 | Terraform backend | Moves state out of the local machine and into Azure Storage |
+| 4 | GitHub OIDC | Lets GitHub Actions plan against Azure without long-lived cloud credentials |
+| 5 | Azure API Center | Creates the registry for approved MCP server metadata |
+| 6 | Azure API Management | Creates the runtime gateway for MCP traffic |
+| 7 | Microsoft Learn MCP APIM API | Exposes the upstream MCP server through the gateway |
+| 8 | APIM policy | Validates the key and applies rate limiting |
+| 9 | API Center metadata | Records owner, risk, auth type, exposure, and runtime deployment URL |
+| 10 | VS Code MCP config | Lets VS Code/GitHub Copilot connect to the APIM MCP endpoint |
+| 11 | End-to-end test | Proves that Copilot can discover Microsoft Learn MCP tools through APIM |
 
 ## Deploy
 
@@ -421,9 +567,25 @@ Use the Microsoft Learn MCP server to find official guidance for exposing an exi
 
 Detailed runbook: [docs/runbooks/vscode-copilot-mcp-test.md](docs/runbooks/vscode-copilot-mcp-test.md)
 
+## Observability And Monitoring
+
+Observability is planned but not fully documented yet.
+
+The POC should be able to show that gateway operation is visible, not only that connectivity works. The table below defines the observability checks that should be added next.
+
+| Check | Purpose | Status |
+| --- | --- | --- |
+| APIM request logs | Show requests to `/microsoft-learn-mcp/mcp` | Planned |
+| Status code visibility | Confirm successful, unauthorized, and throttled requests are visible | Planned |
+| Latency visibility | Understand gateway and upstream response behavior | Planned |
+| Failed key attempts | Prove that denied requests can be audited | Planned |
+| Rate-limit events | Prove that throttling is visible operationally | Planned |
+
 ## Security And Governance
 
 ### POC Controls
+
+This table summarizes the current controls. It answers: "How is the POC governed today?"
 
 | Control | Implementation |
 | --- | --- |
@@ -437,7 +599,7 @@ Detailed runbook: [docs/runbooks/vscode-copilot-mcp-test.md](docs/runbooks/vscod
 
 ### Registry Metadata
 
-API Center records the Microsoft Learn MCP server with governance metadata:
+API Center records the Microsoft Learn MCP server with governance metadata.
 
 | Field | Example Value |
 | --- | --- |
@@ -455,21 +617,11 @@ API Center records the Microsoft Learn MCP server with governance metadata:
 | `lastReviewed` | Review date for the registry entry |
 | `documentationUrl` | `https://learn.microsoft.com/` |
 
-### Target Direction
-
-The POC uses subscription-key authentication because it is simple and fast to validate. The target enterprise direction is stronger:
-
-| Area | POC | Target Direction |
-| --- | --- | --- |
-| Authentication | APIM subscription key checked by policy | Entra ID/OAuth with MCP-compliant authorization |
-| Network exposure | Public APIM endpoint for local testing | Private networking, VPN, Dev Box, or controlled developer environment |
-| Gateway tier | APIM Developer tier | Production-grade tier based on SLA, scale, private networking, and observability needs |
-| Observability | Basic validation pending | APIM logs, Azure Monitor, dashboards, and alerting |
-| Server scope | One read-only MCP server | Multiple approved MCP servers with registry-driven discovery |
-
 ## Cost Model
 
 The main cost driver is Azure API Management.
+
+This table separates the cost-relevant components and the expected cost character.
 
 | Component | Cost Character |
 | --- | --- |
@@ -481,6 +633,8 @@ The main cost driver is Azure API Management.
 To avoid unnecessary spend, deprovision the Azure resources when the POC is not needed.
 
 ## Architecture Decisions
+
+This table summarizes the durable decisions behind the current POC architecture.
 
 | Decision | Chosen Option | Why |
 | --- | --- | --- |
@@ -497,6 +651,8 @@ To avoid unnecessary spend, deprovision the Azure resources when the POC is not 
 Detailed ADR: [ADR-001: Use Azure API Center and API Management for the MCP Registry/Gateway POC](docs/decisions/001-mcp-registry-gateway-poc.md)
 
 ## Known Limitations
+
+This table lists the known boundaries of the current POC so readers do not mistake it for a production architecture.
 
 | Limitation | Impact | Follow-Up |
 | --- | --- | --- |
