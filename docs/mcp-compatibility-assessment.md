@@ -15,8 +15,24 @@ The goal is to distinguish clearly between:
 | --- | --- | --- |
 | Confirmed | Explicitly stated in official vendor or platform documentation | Strong basis for planning |
 | Officially indicated | Supported by official documentation, but not for the exact enterprise gateway path | Good candidate, needs POC validation |
+| Vendor support signal | Stated in an official vendor-controlled support or community forum, but not in formal product documentation | Treat as a strong risk or clarification signal, then validate with the vendor or a POC |
 | Inferred | Reasonable technical conclusion from official docs and architecture constraints | Treat as an assumption |
 | Not confirmed | No official source found during this research pass | Do not build on it without further validation |
+
+## Research Method
+
+This assessment uses the following research checks for each host/server candidate:
+
+1. Confirm whether an official MCP server or connector exists.
+2. Confirm the documented transport and runtime model: remote HTTP, SSE, local stdio, desktop extension, or vendor-managed connector.
+3. Check whether the target host is explicitly supported.
+4. Check whether the authentication model supports arbitrary clients, third-party OAuth apps, Dynamic Client Registration, API keys, or only vendor-supported clients.
+5. Check whether an enterprise gateway/proxy is explicitly supported, explicitly blocked, or only inferred.
+6. Separate formal documentation from vendor support/forum signals and from technical assumptions.
+
+The most important lesson from the Figma review is that "remote MCP server exists" is not enough. For enterprise gateway planning, the compatibility question is:
+
+> Can this remote MCP server be accessed through an enterprise-controlled gateway by a client identity that the vendor accepts?
 
 ## Platform Baseline
 
@@ -125,7 +141,7 @@ Source:
 | Supermetrics | Microsoft 365 Copilot Chat | Supermetrics documents AI chats and a Supermetrics MCP server | Supermetrics-managed AI chat integration; MCP server for custom integrations | Not confirmed for APIM in front of the Supermetrics MCP server | Yes, if remote endpoint/package details are available | Officially indicated | A or vendor-native Copilot integration | Can Supermetrics MCP be routed through APIM and still work with Microsoft 365 Copilot extensibility, or should the vendor-native Copilot integration be used instead? |
 | Contentsquare | Microsoft 365 Copilot Chat | No official Contentsquare MCP server found in this research pass | Official REST APIs and Data Connect exist | APIM REST-to-MCP is plausible, but not confirmed | Yes, as custom wrapper or REST-to-MCP asset | Inferred | C | Can Contentsquare REST APIs be exposed as MCP tools through APIM or a custom wrapper, and can Microsoft 365 Copilot consume them through a connector/agent? |
 | Firecrawl | GitHub Copilot / VS Code | Firecrawl documents an MCP server | Remote hosted URL, local `npx`, Streamable HTTP support | Strong fit for APIM remote MCP gateway | Strong fit as remote MCP registry entry | Confirmed for MCP, inferred for APIM fronting | A | Can APIM proxy Firecrawl remote MCP without breaking auth, streaming, tool discovery, or rate limits? |
-| Figma | GitHub Copilot / VS Code | Figma documents remote and desktop MCP servers | Remote MCP endpoint `https://mcp.figma.com/mcp`; desktop local server | Strong fit for remote APIM gateway, but write-to-canvas/auth behavior must be tested | Strong fit as remote and/or local registry entry | Confirmed for MCP, inferred for APIM fronting | A, optional B | Can APIM proxy Figma remote MCP while preserving OAuth/session behavior and client compatibility? |
+| Figma | GitHub Copilot / VS Code | Figma documents remote and desktop MCP servers | Remote MCP endpoint `https://mcp.figma.com/mcp`; desktop local server | Risky for APIM gateway: Figma support forum indicates `mcp:connect` is not generally available for third-party OAuth apps and MCP access is limited to supported clients/integrations | Strong fit as remote/local registry entry, but runtime gateway fit is not proven | Confirmed for MCP; vendor support signal indicates arbitrary gateway/OAuth app may be blocked | Direct supported client first; A only after vendor validation | Can an APIM-fronted Figma MCP endpoint obtain/forward an accepted Figma OAuth session, or is Figma limited to the clients listed in the MCP catalog? |
 | Contentful | GitHub Copilot / VS Code | Official Contentful GitHub repo provides `contentful-mcp-server` | Local `npx @contentful/mcp-server` using Contentful Management API token | Runtime gateway fit is weak if only local stdio is used; custom hosted wrapper may be possible | Strong fit as local package inventory | Confirmed for local MCP | B first, possible C later | Should Contentful be governed as a local MCP package, or should we host a wrapper and put APIM in front of it? |
 | ESLint | GitHub Copilot / VS Code | ESLint official docs include MCP server setup | Local stdio via `npx @eslint/mcp@latest` | Not a runtime APIM case | Strong fit as local package inventory | Confirmed | B | How do we govern local MCP servers in VS Code: allowed package, version pinning, sandboxing, trust, and central policy? |
 | CODESYS | GitHub Copilot / VS Code | No official CODESYS MCP server found in this research pass | CODESYS APIs/automation interfaces need separate verification | Not confirmed | Possible only as custom inventory if wrapper exists | Not confirmed | C only if API/automation interface is suitable | Is there an official CODESYS API/automation interface that can safely be wrapped as MCP, and what operations are acceptable? |
@@ -226,21 +242,39 @@ Confirmed from official documentation:
 - Figma documents `https://mcp.figma.com/mcp` as the remote MCP endpoint.
 - Figma lists VS Code as supporting both desktop and remote server support.
 - Some features such as write-to-canvas require the remote Figma MCP server and are supported by selected clients.
+- Figma maintains an MCP catalog that lists supported MCP clients and their access model.
 
 Source:
 
 - https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server
+- https://www.figma.com/mcp-catalog/
+
+Vendor support/forum signal:
+
+- A Figma Community Support response in the official Figma Forum states that the `mcp:connect` OAuth scope is not currently available for general third-party OAuth apps.
+- The same response states that MCP access is currently limited to supported clients and integrations.
+- Later posts in the same thread describe enterprise gateway/proxy use cases that appear blocked by the same OAuth/client-registration limitation.
+
+Source:
+
+- https://forum.figma.com/ask-the-community-7/how-to-access-mcp-oauth-scope-mcp-connect-50630
 
 Assumption:
 
-- APIM can likely sit in front of the Figma remote MCP endpoint, but OAuth/session handling and write-capable tools may introduce compatibility or governance issues.
+- The previous assumption that APIM can likely sit in front of the Figma remote MCP endpoint should be downgraded.
+- Based on the vendor support/forum signal, APIM-fronted Figma Remote MCP may be blocked unless Figma supports or approves the gateway/client identity.
+- Direct use from a listed supported client such as VS Code is a different case from routing through an enterprise gateway.
 
 POC validation:
 
-1. Test read-only design-context retrieval first.
-2. Put APIM in front of Figma remote MCP.
-3. Validate whether Figma auth still works through APIM.
-4. Decide whether write-to-canvas tools should be disabled, restricted, or excluded from the enterprise POC.
+1. Test direct Figma Remote MCP from a supported client such as VS Code to establish the baseline.
+2. Confirm whether the same flow works when APIM is inserted in front of Figma Remote MCP.
+3. Validate the OAuth details explicitly:
+   - Does Figma issue/accept a token with `mcp:connect`?
+   - Does Dynamic Client Registration work for the gateway/client?
+   - Does Figma reject the gateway as an unsupported third-party OAuth app?
+4. Treat APIM-fronted Figma MCP as blocked until proven otherwise or until Figma confirms an enterprise/private gateway path.
+5. If APIM-fronted remote MCP is blocked, evaluate the desktop/local Figma MCP model or a separate REST/API-based integration pattern.
 
 ### Contentful
 
@@ -358,7 +392,7 @@ Why:
 - Lower enterprise auth complexity than Figma.
 - Good fit for proving that the Microsoft Learn MCP POC generalizes to third-party remote MCP.
 
-Fallback/second candidate: Figma read-only design context.
+Figma is no longer recommended as the immediate fallback for APIM-fronted remote MCP. It should be tested only after a direct supported-client baseline and explicit OAuth/gateway validation, because vendor support/forum signals indicate that third-party OAuth apps and gateway/proxy scenarios may be blocked.
 
 ### POC B: Local MCP Governance
 
@@ -405,9 +439,8 @@ Key open question:
 | Question | Why It Matters | How To Validate |
 | --- | --- | --- |
 | Can Microsoft 365 Copilot Chat consume an APIM-fronted MCP endpoint directly through federated connectors? | Determines whether our APIM gateway is in the Microsoft Copilot runtime path | Build a minimal federated connector pointing to APIM |
-| Can APIM proxy Figma remote MCP without breaking OAuth/session behavior? | Determines if Figma can fit pattern A | Test read-only Figma MCP through APIM |
+| Can APIM proxy Figma remote MCP without being rejected as an unsupported client/gateway? | Determines if Figma can fit pattern A at all | Test direct supported-client flow first, then APIM-fronted flow; confirm `mcp:connect`, Dynamic Client Registration, and vendor support status |
 | Can APIM proxy Firecrawl remote MCP with API-key auth and streaming intact? | Best next remote MCP generalization test | Test Firecrawl through APIM with MCP Inspector and VS Code |
 | Should local MCP servers be governed by API Center inventory only? | Determines role of API Center for pattern B | Register ESLint local package metadata in API Center and document runtime policy |
 | Can APIM REST-to-MCP cover Contentsquare use cases without custom code? | Determines whether pattern C can be low-code | Expose one Contentsquare REST operation as MCP tool in APIM |
 | Is CODESYS MCP feasible and safe? | Industrial automation risk is higher than ordinary SaaS | Verify official CODESYS automation APIs and define a read-only pilot |
-
