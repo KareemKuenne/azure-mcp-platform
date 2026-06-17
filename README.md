@@ -390,6 +390,7 @@ This table lists the URLs a reader needs when testing or reasoning about the run
 │   ├── decisions/
 │   ├── diagram-variants/
 │   ├── diagrams/
+│   ├── mcp-compatibility-assessment.md
 │   ├── runbooks/
 │   └── references.md
 └── infra/terraform/
@@ -404,6 +405,7 @@ The table below explains the repository folders and files that matter most to a 
 | [.vscode/mcp.json](.vscode/mcp.json) | VS Code Remote HTTP MCP server configuration |
 | [infra/terraform](infra/terraform) | Terraform implementation for Azure resources |
 | [docs/decisions](docs/decisions) | Architecture Decision Records |
+| [docs/mcp-compatibility-assessment.md](docs/mcp-compatibility-assessment.md) | Compatibility matrix for future MCP host/server integration candidates |
 | [docs/runbooks](docs/runbooks) | Operational procedures and manual test instructions |
 | [docs/diagram-variants](docs/diagram-variants/README.md) | Alternative diagram sources and rendered variants |
 | [docs/references.md](docs/references.md) | Consolidated source references |
