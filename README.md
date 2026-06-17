@@ -391,6 +391,7 @@ This table lists the URLs a reader needs when testing or reasoning about the run
 │   ├── diagram-variants/
 │   ├── diagrams/
 │   ├── mcp-compatibility-assessment.md
+│   ├── mcp-governance-model.md
 │   ├── runbooks/
 │   └── references.md
 └── infra/terraform/
@@ -406,6 +407,7 @@ The table below explains the repository folders and files that matter most to a 
 | [infra/terraform](infra/terraform) | Terraform implementation for Azure resources |
 | [docs/decisions](docs/decisions) | Architecture Decision Records |
 | [docs/mcp-compatibility-assessment.md](docs/mcp-compatibility-assessment.md) | Compatibility matrix for future MCP host/server integration candidates |
+| [docs/mcp-governance-model.md](docs/mcp-governance-model.md) | Work-in-progress governance model for remote, local, API-to-MCP, and Copilot integration patterns |
 | [docs/runbooks](docs/runbooks) | Operational procedures and manual test instructions |
 | [docs/diagram-variants](docs/diagram-variants/README.md) | Alternative diagram sources and rendered variants |
 | [docs/references.md](docs/references.md) | Consolidated source references |
