@@ -44,6 +44,29 @@ For REST APIs exposed through API Management as MCP, the first practical capabil
 
 ## Integration Patterns
 
+## Registry And Enforcement Model
+
+The registry is the central source of truth for approved MCP servers, but the registered runtime target depends on the integration pattern.
+
+| Pattern | What The Registry Should Contain | Runtime Path | Enforcement Point |
+| --- | --- | --- | --- |
+| Remote MCP through gateway | The APIM-fronted MCP endpoint, not the vendor's direct endpoint | AI host -> APIM -> remote MCP server | GitHub/VS Code MCP policy allows registry entries; APIM enforces runtime policy |
+| Local MCP package | The approved local package, command, version, and configuration metadata | AI host -> local stdio process -> local MCP server | GitHub/VS Code MCP policy allows registry entries; local controls govern execution |
+| REST API to MCP | The APIM-exposed MCP endpoint or approved custom wrapper | AI host -> APIM -> REST API or wrapper | GitHub/VS Code MCP policy allows registry entries; APIM enforces runtime policy |
+| Microsoft 365 Copilot integration | The approved connector, agent, vendor-native integration, or APIM-fronted MCP endpoint | Depends on selected Copilot extension model | Microsoft 365 admin controls, connector governance, and optionally APIM |
+
+For remote MCP, the registry should normally expose only the enterprise-controlled gateway endpoint. The direct vendor MCP endpoint should not be published as an approved entry unless bypassing the gateway is an explicit decision.
+
+For local MCP, the registry can approve the package and configuration, but it does not route runtime traffic. The local MCP server still runs on the developer workstation.
+
+This means the target operating model is:
+
+1. API Center stores the approved MCP catalog.
+2. GitHub Copilot / VS Code policy is configured to allow only MCP servers from the configured registry.
+3. Remote MCP and REST/API-to-MCP entries point to APIM whenever runtime gateway governance is required.
+4. Local MCP entries point to approved local packages and commands.
+5. Additional endpoint, package, sandbox, and device controls are required for local execution risk.
+
 ### Pattern A: Remote MCP Through Enterprise Gateway
 
 Runtime flow:
@@ -81,6 +104,7 @@ Possible controls:
 
 | Control Area | Example |
 | --- | --- |
+| Registry target | Register the APIM endpoint, not the direct vendor MCP endpoint |
 | Authentication | Subscription key for POC; Entra ID/OAuth target architecture |
 | Authorization | Product/API access, scopes, claims, allowlists |
 | Rate limiting | APIM rate-limit policy |
@@ -117,6 +141,8 @@ Primary governance point:
 
 API Management is not in the runtime path. Governance must be implemented through host policy, repository configuration, approved package inventories, endpoint management, and developer standards.
 
+The registry entry for a local MCP server should describe the approved package and command, for example an `npx` package, version, arguments, required environment variables, sandbox settings, and supported hosts. It should not point to an APIM runtime endpoint unless the local server is intentionally wrapped or hosted elsewhere.
+
 Candidate POCs:
 
 | Candidate | Current View |
@@ -131,7 +157,7 @@ Possible controls:
 | --- | --- |
 | Registry | API Center entry for approved local MCP package |
 | Workspace config | Reviewed `.vscode/mcp.json` checked into trusted repos |
-| Host policy | VS Code/GitHub policies for MCP enablement and allowed configs |
+| Host policy | VS Code/GitHub MCP policy set to registry-only access where available |
 | Package control | Version pinning, internal npm proxy, package allowlist |
 | Runtime safety | VS Code sandboxing where available |
 | User approval | Tool confirmation prompts for risky actions |
@@ -140,7 +166,7 @@ Possible controls:
 
 Important distinction:
 
-API Center can document and approve a local MCP package, but it does not technically prevent a developer from running an unapproved local MCP server. Runtime enforcement requires additional controls outside API Center.
+API Center can document and approve a local MCP package, but API Center alone does not technically prevent a developer from running an unapproved local MCP server. Registry-only enforcement depends on the MCP host honoring enterprise policy. Runtime execution risk still requires additional controls such as managed VS Code settings, GitHub Copilot organization policy, package allowlists, sandboxing, endpoint management, and monitoring.
 
 ### Pattern C: REST API To MCP Or Custom Wrapper
 
