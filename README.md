@@ -663,7 +663,7 @@ This table lists the known boundaries of the current POC so readers do not mista
 | APIM Developer tier has no SLA | Not production-ready | Evaluate production tiers later |
 | Public APIM endpoint | Easier to test, weaker than private enterprise pattern | Add private networking or controlled developer access path |
 | Subscription key auth | Good POC shortcut, weaker than identity-based auth | Design Entra ID/OAuth target architecture |
-| One upstream MCP server | Proves the pattern, not full registry scale | Add more MCP servers after the platform pattern is stable |
+| One upstream MCP server in this repository | Proves the core Microsoft Learn pattern, not full registry scale | See the linked Firecrawl and ESLint follow-up POCs for third-party remote and local MCP patterns |
 | Observability not fully documented | Gateway operations are not yet easy to demonstrate | Add APIM log checks and Azure Monitor validation |
 
 ## Related Repositories

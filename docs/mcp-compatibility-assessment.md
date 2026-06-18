@@ -382,7 +382,7 @@ POC validation:
 
 ### POC A2: Remote Third-Party MCP Through APIM
 
-Recommended first candidate: Firecrawl.
+Validated first candidate: Firecrawl.
 
 Why:
 
@@ -396,7 +396,7 @@ Figma is no longer recommended as the immediate fallback for APIM-fronted remote
 
 ### POC B: Local MCP Governance
 
-Recommended first candidate: ESLint.
+Validated first candidate: ESLint.
 
 Why:
 
@@ -440,7 +440,7 @@ Key open question:
 | --- | --- | --- |
 | Can Microsoft 365 Copilot Chat consume an APIM-fronted MCP endpoint directly through federated connectors? | Determines whether our APIM gateway is in the Microsoft Copilot runtime path | Build a minimal federated connector pointing to APIM |
 | Can APIM proxy Figma remote MCP without being rejected as an unsupported client/gateway? | Determines if Figma can fit pattern A at all | Test direct supported-client flow first, then APIM-fronted flow; confirm `mcp:connect`, Dynamic Client Registration, and vendor support status |
-| Can APIM proxy Firecrawl remote MCP with API-key auth and streaming intact? | Best next remote MCP generalization test | Test Firecrawl through APIM with MCP Inspector and VS Code |
-| Should local MCP servers be governed by API Center inventory only? | Determines role of API Center for pattern B | Register ESLint local package metadata in API Center and document runtime policy |
+| Can APIM proxy Firecrawl remote MCP with API-key auth and streaming intact? | Best next remote MCP generalization test | Keyless APIM proxy path validated; API-key-backed vendor calls remain to be tested |
+| Should local MCP servers be governed by API Center inventory only? | Determines role of API Center for pattern B | ESLint local MCP runtime validated; API Center inventory and enterprise host policy remain to be tested |
 | Can APIM REST-to-MCP cover Contentsquare use cases without custom code? | Determines whether pattern C can be low-code | Expose one Contentsquare REST operation as MCP tool in APIM |
 | Is CODESYS MCP feasible and safe? | Industrial automation risk is higher than ordinary SaaS | Verify official CODESYS automation APIs and define a read-only pilot |

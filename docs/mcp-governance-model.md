@@ -97,7 +97,7 @@ Candidate POCs:
 | Candidate | Current View |
 | --- | --- |
 | Microsoft Learn MCP | Already validated in the initial POC |
-| Firecrawl | Best next third-party remote MCP candidate |
+| Firecrawl | Validated as third-party remote MCP candidate in a follow-up POC |
 | Figma | MCP confirmed, but gateway/OAuth compatibility is risky and must be validated before treating it as pattern A |
 
 Possible controls:
@@ -147,7 +147,7 @@ Candidate POCs:
 
 | Candidate | Current View |
 | --- | --- |
-| ESLint MCP | Best first local MCP governance POC because it is low risk and developer-focused |
+| ESLint MCP | Validated as local MCP governance POC with VS Code and GitHub Copilot |
 | Chrome DevTools MCP | Useful but higher risk because it controls a browser session |
 | Contentful MCP | Confirmed local MCP, but write-capable and therefore higher risk |
 
@@ -303,8 +303,8 @@ Each approved MCP server or package should have at least the following metadata:
 
 | Order | POC | Goal | Needs Credentials? |
 | --- | --- | --- | --- |
-| 1 | Firecrawl through APIM | Prove third-party remote MCP gateway pattern | Likely yes, Firecrawl API key |
-| 2 | ESLint local MCP | Prove local MCP inventory and workstation governance model | No |
+| 1 | Firecrawl through APIM | Prove third-party remote MCP gateway pattern | Validated keyless for discovery/tool calls; API key needed for full vendor usage |
+| 2 | ESLint local MCP | Prove local MCP inventory and workstation governance model | Validated without credentials |
 | 3 | Contentsquare REST/API-to-MCP | Prove REST-to-MCP or wrapper pattern | Yes, Contentsquare API access |
 | 4 | Supermetrics with Microsoft 365 Copilot Chat | Prove Microsoft 365 Copilot integration pattern | Yes, M365 tenant/admin and Supermetrics access |
 | 5 | Chrome DevTools local MCP | Prove high-risk local MCP controls | No vendor credential, but local browser safety setup |
@@ -336,8 +336,8 @@ Each approved MCP server or package should have at least the following metadata:
 
 | Question | Why It Matters | Suggested Validation |
 | --- | --- | --- |
-| Should local MCP servers require central approval before use? | Determines how strict workstation governance must be | ESLint local MCP POC |
-| Should APIM block or allow tool calls by tool name? | Determines depth of runtime governance | Firecrawl APIM POC |
+| Should local MCP servers require central approval before use? | Determines how strict workstation governance must be | ESLint local MCP POC validated the runtime path; central policy enforcement remains the next validation |
+| Should APIM block or allow tool calls by tool name? | Determines depth of runtime governance | Firecrawl APIM POC validated gatewaying; tool-level policy remains the next validation |
 | Should write-capable tools require human approval every time? | Reduces risk of destructive actions | Contentful or Chrome DevTools POC |
 | Should registry metadata be manually curated or generated from MCP discovery? | Affects operational effort and accuracy | Compare API Center metadata with runtime MCP discovery |
 | Should vendor-native Copilot integrations be allowed when APIM is not in path? | Determines governance posture for Microsoft 365 Copilot | Supermetrics POC |
@@ -348,7 +348,7 @@ The current recommendation is:
 
 1. Use APIM and API Center for remote MCP and API-to-MCP patterns.
 2. Use API Center as inventory for local MCP servers, but do not treat it as runtime enforcement.
-3. Start local MCP governance with low-risk developer tooling such as ESLint.
+3. Use the ESLint local MCP POC as the baseline for low-risk developer-tool governance.
 4. Treat high-risk local MCP servers, such as browser-control or write-capable CMS tooling, as separate security reviews.
 5. Validate Microsoft 365 Copilot Chat through its official extension model before assuming arbitrary MCP endpoint support.
 6. Prefer read-only POCs before write-capable POCs.
