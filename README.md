@@ -673,6 +673,8 @@ This repository contains only the Azure MCP Platform POC.
 | Repository | Purpose | Visibility Intent |
 | --- | --- | --- |
 | `azure-mcp-platform` | Concrete Azure MCP registry/gateway POC | Public reference POC |
+| [`azure-mcp-firecrawl-poc`](https://github.com/KareemKuenne/azure-mcp-firecrawl-poc) | Remote third-party MCP gateway POC with Firecrawl, APIM, and API Center | Public reference POC |
+| [`mcp-eslint-local-poc`](https://github.com/KareemKuenne/mcp-eslint-local-poc) | Local MCP governance POC with ESLint, VS Code, and GitHub Copilot | Public reference POC |
 | `codex-cloud-workbench` | Personal cloud/Codex enablement and local workbench | Private |
 | `codex-azure-project-template` | Reusable Azure/Codex project template and standards | Private |
 
